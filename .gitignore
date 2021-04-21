@@ -3,4 +3,4 @@ __pycache__/
 
 # Compiled source #
 ###################
-*/.ipynb_checkpoints/*
+!.ipynb_checkpoints/*
