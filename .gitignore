@@ -4,4 +4,3 @@ __pycache__/
 # Compiled source #
 ###################
 *.ipynb_checkpoints
-*.DS_Store 
