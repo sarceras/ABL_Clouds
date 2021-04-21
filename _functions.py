@@ -7,43 +7,22 @@ from _constants import *
 from _utils import *
 
 def Evap(theta, q, Q, s, specie, soil):
-    """Evap.
-    
-    
-    Parameters
-    ----------
-    theta: temperature
-    q: humidity
-    Q: raduation
-    s: soil moisture
-    specie: plant species
-    soil: soil type
-    
-    Returns
-    ----------
-    E: evaporation
-
-    """
-    # Define the condition that makes the ABL not growing at night.
+   
     if Q <= 20:     
         Q = 20.
 
-    # Definisci che roba è.
     lambda_ = 2.45*10**6
     
-    # Bisogna mettere a posto questa parte: non si puà lasciare nel codice questa cosa di 'errrrrr'.
     try:  
         Psi_l = fsolve(f_solvePsil, -1, args = (theta, q, Q, s, specie, soil)) 
     except:
         raise ValueError("Error.")   
 
-    # Definisci cosa calcoli.
     Eva, _, _ = f_solvePsilEvap(Psi_l, theta, q, Q, s, specie, soil)
     E = Eva *rhow # kg/m^2/s
     
     H = Q - lambda_*E # Now they are both in J/m^2/s or W/m^2
 
-    # Without this condition, 'errrr' risk; you need that but if the value is high (i.e >=1 the ABL grows at night).
     if H < 10:    
         H = 10.;
         E = (Q-H)/lambda_
@@ -58,7 +37,7 @@ def f_solvePsil(x, theta, q, Q, s, specie, soil):
     Zr_=Zr[specie]  #m
     gpmax_=gpmax[specie] #um/s
     #h=height[specie]
-    #gba=gaCalc(h)  #m/s   #da mettere col calcolo di gacalc
+    #gba=gaCalc(h)  #m/s   
     gba=ga[specie]
     gsmax=0.025   #m/s
     a=8.
@@ -70,7 +49,7 @@ def f_solvePsil(x, theta, q, Q, s, specie, soil):
     VPD=fes(theta)-q*P0/0.622;
     gs=gsmax*JarvisfPhi(Q)*JarvisfPsi_l(x)*JarvisfD(VPD)*JarvisfTa(theta)
     Kroot=Ks_*s**(2*b_+3)
-    RAI=RAIstar*s**(-a)   #cambia   
+    RAI=RAIstar*s**(-a)   
     gsr=Kroot*RAI**0.5/g/np.pi/rhow/Zr_*10**6
     gp=gpmax_*( 1+np.exp(-(-x/d)**c) ) * 10**(-6)
     gsrp=LAI_*gsr*gp/(gsr+LAI_*gp)
@@ -94,7 +73,7 @@ def f_solvePsilEvap(Psi_l, theta, q, Q, s, specie, soil):
     Zr_=Zr[specie]  #m
     gpmax_=gpmax[specie] #um/s
     #h=height[specie]
-    #gba=gaCalc(h)  #m/s   #m/s  #da mettere col calcolo di gacalc
+    #gba=gaCalc(h)  #m/s   #m/s  
     gba=ga[specie]
     gsmax=0.025   #m/s
     a=8.
@@ -106,7 +85,7 @@ def f_solvePsilEvap(Psi_l, theta, q, Q, s, specie, soil):
     gs=gsmax*JarvisfPhi(Q)*JarvisfPsi_l(Psi_l)*JarvisfD(VPD)*JarvisfTa(theta)
     #print('gs=', gs)
     Kroot=Ks_*s**(2*b_+3.)
-    RAI=RAIstar*s**(-a)   #cambia  
+    RAI=RAIstar*s**(-a)   
     gsr=Kroot*RAI**0.5/g/np.pi/rhow/Zr_*10**6
     #print('gsr=', gsr)
     gp=gpmax_*(1+np.exp(-(-Psi_l/d)**c) ) * 10**(-6)  #m/MPa/s
@@ -238,9 +217,7 @@ def odefunV(t, y, FA_params, QQ, tt, s, specie, soil):
     theta = thetav/(1. + 0.61*q)
     
     Q = interp1d(tt, QQ, fill_value = "extrapolate")(t) # Extrapolate takes value even out the time range.
-    # Needed bacause the integration method takes time value out of the range of interpolation.
-
-    # Define the condition that makes the ABL not growing at night.
+    
     if Q <= 20:     
         Q = 20.
   
@@ -256,8 +233,6 @@ def odefunV(t, y, FA_params, QQ, tt, s, specie, soil):
     H = Q-lambda_*E # W/m^2
     le = lambda_*E
     
-    # You need this condition but if the value is high (i.e >=1 the ABL grows at night).
-    # Condition no to raise error.
     if H < 10:    
         H = 10.;
         E = (Q-H)/lambda_
@@ -299,7 +274,7 @@ def AP(FA_params, Q_max, s, specie, soil, alfa, tt):
     h = sol.y[0]
     thetav = sol.y[1]
     q = sol.y[2]
-    T=sol.t  #even if during the integration is not like that, this T now is ordered and as I wanted t_eval=tt
+    T=sol.t 
 
     theta=thetav/(1.+0.61*q) 
 
@@ -322,13 +297,13 @@ def AP(FA_params, Q_max, s, specie, soil, alfa, tt):
         _, Psrd, Tsrd,qsrd = thetav2TP(FA_params) #Psrd independent of y_q
    
         try:
-            zLCL, TLCL = simpleLCL( theta,q ) #gives me two list
+            zLCL, TLCL = simpleLCL( theta,q ) 
             PLCL=P0*(TLCL/theta)**(cp/Rd)
             Ph=P0*((theta-g/cp*h)/theta)**(cp/Rd)
             # adiabatic lifting
             TAD, PAD = Adiabat( TLCL[i],PLCL[i] )
 
-            Tsrd=interp1d(Psrd,Tsrd)(PAD)  #not sure about extrapolate is a good idea, because it's for positive yq
+            Tsrd=interp1d(Psrd,Tsrd)(PAD)  
             qsrd=interp1d(Psrd,qsrd)(PAD)
             Psrd=PAD
             # synchronize the surrouding below ABL
@@ -356,7 +331,7 @@ def daily_sim(FA_params, Q_max, s, cloud_albedo, specie, soil, alfa, tt):
 
     interp0 = interp1d(T, QQ, fill_value = "extrapolate")
     T0, T1 = fsolve(interp0, [20000, 70000])
-    t = np.linspace(T0, T1) # non metti il numero num qua?
+    t = np.linspace(T0, T1) 
 
     area_Q = np.trapz(interp0(t), t)
     mean_area_Q = area_Q/(24.*3600.)
